@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Amazon Style Store</title>
+  <style>
+    body { margin: 0; font-family: 'Arial', sans-serif; background: #f7f7f7; }
+    header {
+      background: #131921; color: white; padding: 15px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { font-size: 24px; }
+    .search-bar input {
+      padding: 8px;
+      width: 300px;
+      border: none;
+      border-radius: 4px;
+    }
+    .cart-icon {
+      font-size: 18px;
+      background: #ffa41c;
+      color: #000;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    nav {
+      background: #232f3e;
+      color: white;
+      padding: 10px 20px;
+    }
+    nav a { color: white; margin-right: 20px; text-decoration: none; font-weight: bold; }
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    .product {
+      background: white;
+      padding: 15px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      border-radius: 5px;
+      transition: transform 0.3s ease;
+    }
+    .product:hover { transform: scale(1.03); }
+    .product img {
+      width: 100%;
+      height: 200px;
+      object-fit: contain;
+    }
+    .product h4 {
+      font-size: 16px;
+      margin: 10px 0 5px;
+    }
+    .product p { margin: 5px 0; font-weight: bold; color: #B12704; }
+    .product button {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      background: #ffd814;
+      border: 1px solid #fcd200;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .product button:hover { background: #f7ca00; }
+
+    /* Cart Modal */
+    #cart-modal {
+      display: none;
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      width: 90%;
+      max-width: 500px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      z-index: 1000;
+      border-radius: 10px;
+    }
+    #cart-modal h2 {
+      margin-top: 0;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+    }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+    }
+    .cart-footer {
+      border-top: 1px solid #ccc;
+      margin-top: 15px;
+      padding-top: 10px;
+      font-weight: bold;
+    }
+    .close-btn {
+      background: red;
+      color: white;
+      border: none;
+      float: right;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .checkout-btn {
+      margin-top: 10px;
+      background: #ffa41c;
+      border: none;
+      padding: 10px;
+      width: 100%;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Amazon Lite</h1>
+  <div class="search-bar">
+    <input type="text" placeholder="Search products...">
+  </div>
+  <div class="cart-icon" onclick="openCart()">🛒 Cart: <span id="cart-count">0</span></div>
+</header>
+
+<nav>
+  <a href="#" onclick="filterProducts('all')">All</a>
+  <a href="#" onclick="filterProducts('phones')">Phones</a>
+  <a href="#" onclick="filterProducts('laptops')">Laptops</a>
+  <a href="#" onclick="filterProducts('accessories')">Accessories</a>
+</nav>
+
+<main class="product-grid" id="product-list">
+  <!-- Products render here -->
+</main>
+
+<!-- Cart Modal -->
+<div id="cart-modal">
+  <button class="close-btn" onclick="closeCart()">X</button>
+  <h2>Your Cart</h2>
+  <div id="cart-items"></div>
+  <div class="cart-footer">
+    Total: $<span id="total-price">0.00</span>
+  </div>
+  <button class="checkout-btn" onclick="alert('Proceeding to checkout...')">Proceed to Checkout</button>
+</div>
+
+<script>
+  const products = [
+    { id: 1, name: "iPhone 13", category: "phones", price: 799, img: "https://via.placeholder.com/220x200?text=iPhone+13" },
+    { id: 2, name: "Samsung Galaxy S21", category: "phones", price: 699, img: "https://via.placeholder.com/220x200?text=Galaxy+S21" },
+    { id: 3, name: "MacBook Pro", category: "laptops", price: 1299, img: "https://via.placeholder.com/220x200?text=MacBook+Pro" },
+    { id: 4, name: "Dell XPS 13", category: "laptops", price: 999, img: "https://via.placeholder.com/220x200?text=Dell+XPS" },
+    { id: 5, name: "Bluetooth Headphones", category: "accessories", price: 99, img: "https://via.placeholder.com/220x200?text=Headphones" }
+  ];
+
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+  function updateCartCount() {
+    document.getElementById("cart-count").innerText = cart.length;
+  }
+
+  function addToCart(id) {
+    const product = products.find(p => p.id === id);
+    cart.push(product);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartCount();
+    alert(`${product.name} added to cart!`);
+  }
+
+  function openCart() {
+    const cartItemsDiv = document.getElementById("cart-items");
+    const totalPriceSpan = document.getElementById("total-price");
+    cartItemsDiv.innerHTML = '';
+    let total = 0;
+
+    const grouped = {};
+    cart.forEach(item => {
+      if (!grouped[item.id]) grouped[item.id] = { ...item, qty: 0 };
+      grouped[item.id].qty++;
+    });
+
+    for (let id in grouped) {
+      const item = grouped[id];
+      const subtotal = item.qty * item.price;
+      total += subtotal;
+      cartItemsDiv.innerHTML += `
+        <div class="cart-item">
+          <span>${item.name} (x${item.qty})</span>
+          <span>$${subtotal.toFixed(2)}</span>
+        </div>
+      `;
+    }
+
+    totalPriceSpan.innerText = total.toFixed(2);
+    document.getElementById("cart-modal").style.display = "block";
+  }
+
+  function closeCart() {
+    document.getElementById("cart-modal").style.display = "none";
+  }
+
+  function renderProducts(filter = 'all') {
+    const container = document.getElementById("product-list");
+    container.innerHTML = '';
+    const filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
+    filtered.forEach(p => {
+      container.innerHTML += `
+        <div class="product">
+          <img src="${p.img}" alt="${p.name}">
+          <h4>${p.name}</h4>
+          <p>$${p.price}</p>
+          <button onclick="addToCart(${p.id})">Add to Cart</button>
+        </div>
+      `;
+    });
+  }
+
+  renderProducts();
+  updateCartCount();
+</script>
+
+</body>
+</html>
